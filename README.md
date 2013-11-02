@@ -1,0 +1,11 @@
+# running node as a unix domain socket server is awesome!
+
+If we observe controlled TCP/IP loopback locally and/or remotely, or simply turn our attention to the published redis project benchmarks, the fact is a unix domain socket will often reach more efficient transport levels in the order of 50% more throughput than a TCP port, [see Factors impacting Redis performance, 3rd bullet point from bottom of that section](http://redis.io/topics/benchmarks).  
+
+Unix domain sockets use the file system as their address name space. They are referenced by processes as inodes in the file system. This allows two processes to open the same socket in order to communicate. However, communication occurs entirely within the operating system kernel.
+
+In addition to sending data, processes may send file descriptors across a Unix domain socket connection.  
+
+Of course, [node userland](//github.com/joyent/node/wiki/node-core-vs-userland#this-is-a-good-thing) generally passes a port number among other initializing arguments to Node's HTTP listener, and we all know this runs very fast TCP port-based servers. However, [Ryan Dahl](//shitryandahlsays.tumblr.com), [Isaacs](http://blog.izs.me/) and core provided an equally trivial mechanism for initializing the runtime via unix socket. [Just pass a string with the directory path in leu of a port number to Node's HTTP function and it opens a domain communication socket located at the end of our path](https://github.com/joyent/node/wiki/node-core-vs-userland#this-is-a-good-thing). 
+
+The benefit of latency reduction across the stack surrounding central application logic incurs the cost of additional configuration in meeting the requirements of meaningful node process initialization. For example, we know a TCP port is available to the browser or request/response interface immediately after we initialize node, whereas unix sockets do not lend themselves to our typical request/response exchange without an upstream mechansim available to pass the request/response object from kernel to transport layer, such as Nginx's upstream proxy. To open unix style sockets, root permission is generally required which may represent an aditional step to account for in meeting the domain socket's added burden of configuration requirements.
